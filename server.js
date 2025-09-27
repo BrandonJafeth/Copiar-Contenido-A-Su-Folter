@@ -6,9 +6,7 @@ require('dotenv').config();
 // Imports
 const express = require("express");
 const session = require("express-session");
-const ExpressOIDC = require("@okta/oidc-middleware").ExpressOIDC;
-const { auth } = require('express-openid-connect');
-const { requiresAuth } = require('express-openid-connect');
+const { auth, requiresAuth } = require('express-openid-connect');
 var cons = require('consolidate');
 var path = require('path');
 let app = express();
@@ -43,59 +41,69 @@ const config = {
   issuerBaseURL: process.env.ISSUER_BASE_URL
 };
 
-let oidc = new ExpressOIDC({
-  issuer: OKTA_ISSUER_URI,
-  client_id: OKTA_CLIENT_ID,
-  client_secret: OKTA_CLIENT_SECRET,
-  redirect_uri: getRedirectURI(),
-  routes: { callback: { defaultRedirect: getRedirectURI() } },
-  scope: 'openid profile'
-});
-
-// auth router attaches /login, /logout, and /callback routes to the baseURL
-app.use(auth(config));
-
 // MVC View Setup
 app.engine('html', cons.swig)
 app.set('views', path.join(__dirname, 'views'));
 app.set('models', path.join(__dirname, 'models'));
 app.set('view engine', 'html');
 
-// App middleware
+// App middleware (ANTES de auth)
 app.use("/static", express.static("static"));
 
+// Configurar sesión ANTES del auth middleware
 app.use(session({
   cookie: { 
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production' // HTTPS en producción
+    secure: process.env.NODE_ENV === 'production', // HTTPS en producción
+    maxAge: 24 * 60 * 60 * 1000 // 24 horas
   },
   secret: SECRET,
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  name: 'sessionId'
 }));
 
-// App routes
-app.use(oidc.router);
+// Configuración mejorada de Auth0
+const authConfig = {
+  authRequired: false,
+  auth0Logout: true,
+  secret: SECRET,
+  baseURL: getBaseURL(),
+  clientID: OKTA_CLIENT_ID,
+  issuerBaseURL: process.env.ISSUER_BASE_URL,
+  clientSecret: OKTA_CLIENT_SECRET,
+  routes: {
+    callback: '/callback',
+    login: '/login',
+    logout: '/logout'
+  }
+};
 
+// auth router attaches /login, /logout, and /callback routes to the baseURL
+app.use(auth(authConfig));
+
+// App routes
 app.get("/",  (req, res) => {
   res.render("index");  
 });
 
-app.get("/dashboard", requiresAuth() ,(req, res) => {  
-  var payload = Buffer.from(req.appSession.id_token.split('.')[1], 'base64').toString('utf-8');
-  const userInfo = JSON.parse(payload);
-  res.render("dashboard", { user: userInfo });
+app.get("/dashboard", requiresAuth(), (req, res) => {  
+  try {
+    // Usar req.oidc.user en lugar de decodificar manualmente
+    const userInfo = req.oidc.user;
+    res.render("dashboard", { user: userInfo });
+  } catch (error) {
+    console.error('Error en dashboard:', error);
+    res.redirect('/');
+  }
 });
 
-const openIdClient = require('openid-client');
-openIdClient.Issuer.defaultHttpOptions.timeout = 20000;
+// Iniciar servidor
+console.log("Server starting...");
+console.log("Base URL: " + getBaseURL());
+console.log("Port: " + PORT);
 
-oidc.on("ready", () => {
-  console.log("Server running on port: " + PORT);
-  console.log("Base URL: " + getBaseURL());
-  app.listen(parseInt(PORT));
-});
-
-oidc.on("error", err => {
-  console.error(err);
+app.listen(parseInt(PORT), () => {
+  console.log(`Server running on port: ${PORT}`);
+  console.log(`Visit: ${getBaseURL()}`);
 });
