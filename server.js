@@ -20,9 +20,18 @@ const SECRET = process.env.SECRET;
 
 // Configuración dinámica para Render
 const getBaseURL = () => {
-  if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
+  // Render automáticamente proporciona RENDER_EXTERNAL_URL
+  if (process.env.RENDER_EXTERNAL_URL) {
+    console.log("🚀 Usando URL de Render:", process.env.RENDER_EXTERNAL_URL);
     return process.env.RENDER_EXTERNAL_URL;
   }
+  // Si NODE_ENV es production pero no hay RENDER_EXTERNAL_URL, usar la URL hardcoded
+  if (process.env.NODE_ENV === 'production') {
+    console.log("🚀 Usando URL de producción hardcoded");
+    return 'https://lab-6-w2e1.onrender.com';
+  }
+  // Desarrollo local
+  console.log("🏠 Usando URL local");
   return process.env.BASE_URL || 'http://localhost:3000';
 };
 
@@ -110,12 +119,19 @@ app.get("/dashboard", requiresAuth(), (req, res) => {
 });
 
 // Iniciar servidor
-console.log("Server starting...");
-console.log("Environment:", process.env.NODE_ENV || 'development');
+console.log("=".repeat(50));
+console.log("🚀 SERVER STARTING");
+console.log("=".repeat(50));
+console.log("NODE_ENV:", process.env.NODE_ENV || 'development');
+console.log("RENDER_EXTERNAL_URL:", process.env.RENDER_EXTERNAL_URL || 'NOT SET');
+console.log("BASE_URL (env):", process.env.BASE_URL || 'NOT SET');
+console.log("Port:", PORT);
+console.log("-".repeat(30));
+console.log("📡 URLs CALCULADAS:");
 console.log("Base URL:", getBaseURL());
 console.log("Callback URL:", getCallbackURL());
 console.log("Redirect URI:", getRedirectURI());
-console.log("Port:", PORT);
+console.log("=".repeat(50));
 
 app.listen(parseInt(PORT), () => {
   console.log(`Server running on port: ${PORT}`);
