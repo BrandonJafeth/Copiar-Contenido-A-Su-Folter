@@ -2,7 +2,7 @@
   "name": "okta-oidc-una",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "dependencies": {
     "@okta/oidc-middleware": "0.0.6",
     "consolidate": "^0.15.1",
@@ -14,7 +14,9 @@
     "swig": "^1.4.2"
   },
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'No build step required'",
+    "dev": "node server.js"
   },
   "author": "UNA",
   "license": "MIT"
