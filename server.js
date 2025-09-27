@@ -26,6 +26,11 @@ const getBaseURL = () => {
   return process.env.BASE_URL || 'http://localhost:3000';
 };
 
+const getCallbackURL = () => {
+  const baseURL = getBaseURL();
+  return `${baseURL}/callback`;
+};
+
 const getRedirectURI = () => {
   const baseURL = getBaseURL();
   return `${baseURL}/dashboard`;
@@ -75,7 +80,13 @@ const authConfig = {
   routes: {
     callback: '/callback',
     login: '/login',
-    logout: '/logout'
+    logout: '/logout',
+    postLogoutRedirect: getBaseURL() // Redirige a la base URL después del logout
+  },
+  session: {
+    absoluteDuration: 24 * 60 * 60 * 1000, // 24 horas
+    rolling: true,
+    rollingDuration: 60 * 60 * 1000 // 1 hora de inactividad
   }
 };
 
@@ -100,10 +111,14 @@ app.get("/dashboard", requiresAuth(), (req, res) => {
 
 // Iniciar servidor
 console.log("Server starting...");
-console.log("Base URL: " + getBaseURL());
-console.log("Port: " + PORT);
+console.log("Environment:", process.env.NODE_ENV || 'development');
+console.log("Base URL:", getBaseURL());
+console.log("Callback URL:", getCallbackURL());
+console.log("Redirect URI:", getRedirectURI());
+console.log("Port:", PORT);
 
 app.listen(parseInt(PORT), () => {
   console.log(`Server running on port: ${PORT}`);
   console.log(`Visit: ${getBaseURL()}`);
+  console.log(`Login: ${getBaseURL()}/login`);
 });
