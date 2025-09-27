@@ -17,16 +17,28 @@ let app = express();
 const OKTA_ISSUER_URI = process.env.OKTA_ISSUER_URI;
 const OKTA_CLIENT_ID = process.env.OKTA_CLIENT_ID;
 const OKTA_CLIENT_SECRET = process.env.OKTA_CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
 const PORT = process.env.PORT || "3000";
 const SECRET = process.env.SECRET;
+
+// Configuración dinámica para Render
+const getBaseURL = () => {
+  if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL;
+  }
+  return process.env.BASE_URL || 'http://localhost:3000';
+};
+
+const getRedirectURI = () => {
+  const baseURL = getBaseURL();
+  return `${baseURL}/dashboard`;
+};
 
 //  Configuración de Auth0 usando variables de entorno
 const config = {
   authRequired: process.env.AUTH_REQUIRED === 'true',
   auth0Logout: process.env.AUTH0_LOGOUT === 'true',
   secret: SECRET,
-  baseURL: process.env.BASE_URL,
+  baseURL: getBaseURL(),
   clientID: OKTA_CLIENT_ID,
   issuerBaseURL: process.env.ISSUER_BASE_URL
 };
@@ -35,8 +47,8 @@ let oidc = new ExpressOIDC({
   issuer: OKTA_ISSUER_URI,
   client_id: OKTA_CLIENT_ID,
   client_secret: OKTA_CLIENT_SECRET,
-  redirect_uri: REDIRECT_URI,
-  routes: { callback: { defaultRedirect: "http://localhost:3000/dashboard" } },
+  redirect_uri: getRedirectURI(),
+  routes: { callback: { defaultRedirect: getRedirectURI() } },
   scope: 'openid profile'
 });
 
@@ -53,7 +65,10 @@ app.set('view engine', 'html');
 app.use("/static", express.static("static"));
 
 app.use(session({
-  cookie: { httpOnly: true },
+  cookie: { 
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production' // HTTPS en producción
+  },
   secret: SECRET,
   resave: false,
   saveUninitialized: false
@@ -67,12 +82,9 @@ app.get("/",  (req, res) => {
 });
 
 app.get("/dashboard", requiresAuth() ,(req, res) => {  
-  // if(req.oidc.isAuthenticated())
-  // {
-    var payload = Buffer.from(req.appSession.id_token.split('.')[1], 'base64').toString('utf-8');
-    const userInfo = JSON.parse(payload);
-    res.render("dashboard", { user: userInfo });
-  //}
+  var payload = Buffer.from(req.appSession.id_token.split('.')[1], 'base64').toString('utf-8');
+  const userInfo = JSON.parse(payload);
+  res.render("dashboard", { user: userInfo });
 });
 
 const openIdClient = require('openid-client');
@@ -80,6 +92,7 @@ openIdClient.Issuer.defaultHttpOptions.timeout = 20000;
 
 oidc.on("ready", () => {
   console.log("Server running on port: " + PORT);
+  console.log("Base URL: " + getBaseURL());
   app.listen(parseInt(PORT));
 });
 
