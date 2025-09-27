@@ -2,7 +2,7 @@
   "name": "okta-oidc-una",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "dependencies": {
     "@okta/oidc-middleware": "0.0.6",
     "consolidate": "^0.15.1",
