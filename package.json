@@ -8,7 +8,7 @@
     "consolidate": "^0.15.1",
     "dotenv": "^17.2.2",
     "express": "^4.20.0",
-    "express-openid-connect": "^2.16.0",
+    "express-openid-connect": "^2.19.2",
     "express-session": "^1.15.6",
     "socket.io": "^2.5.1",
     "swig": "^1.4.2"
