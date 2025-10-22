@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "@okta/oidc-middleware": "4.0.0",
+    "@okta/oidc-middleware": "4.5.1",
     "consolidate": "^0.15.1",
     "dotenv": "^17.2.2",
     "express": "^4.20.0",
